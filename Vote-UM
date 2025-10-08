@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr">  
+<head>  
+  <meta charset="utf-8">  
+  <meta name="viewport" content="width=device-width,initial-scale=1">  
+  <title>Système de Vote - Université de Mbuji-mayi</title>  
+  <style>  
+    body {
+      background:#f5f5f5;
+      font-family: Arial, sans-serif;
+      margin:0;
+      color:#222;
+    }
+    .container {
+      max-width:900px;
+      margin:20px auto;
+      padding:20px;
+    }
+    header {
+      background:#1a237e;
+      color:#fff;
+      padding:15px;
+      border-radius:8px;
+      text-align:center;
+    }
+    header img {
+      width:80px;
+      height:80px;
+      object-fit:contain;
+      display:block;
+      margin:0 auto 10px auto;
+    }
+    .card {
+      background:#fff;
+      padding:15px;
+      margin-top:15px;
+      border-radius:8px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    }
+    .form-group{margin-bottom:10px}
+    label{font-weight:bold;display:block;margin-bottom:5px}
+    input{width:100%;padding:8px;border:1px solid #ccc;border-radius:5px}
+    button{
+      background:#1a237e;
+      color:#fff;
+      border:none;
+      padding:10px 15px;
+      border-radius:6px;
+      cursor:pointer;
+    }
+    button[disabled]{opacity:0.6;cursor:not-allowed}
+    .candidates{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+      gap:10px;
+      margin-top:10px
+    }
+    .candidate{
+      border:1px solid #ddd;
+      border-radius:6px;
+      padding:10px;
+      text-align:center;
+      cursor:pointer;
+    }
+    .candidate img{
+      width:100%;
+      height:130px;
+      object-fit:cover;
+      border-radius:6px;
+      margin-bottom:8px;
+    }
+    .candidate.selected{border:2px solid #1a237e;background:#eef0ff}
+    .message{padding:8px;border-radius:5px;margin-top:8px}
+    .success{background:#d9fdd3;color:#1b5e20}
+    .error{background:#ffd7d7;color:#b71c1c}
+    footer{text-align:center;font-size:13px;margin-top:15px;color:#555}
+    .hidden{display:none}
+    .creator{font-style:italic;margin-top:5px}
+  </style>  
+</head>  
+<body>  
+  <div class="container">  
+
+    <!-- En-tête avec emblème -->
+    <header>
+      <img src="um" alt="Emblème Université de Mbuji-mayi">
+      <h1>Université de Mbuji-mayi</h1>
+      <p>Système de Vote en Ligne</p>
+    </header>
+
+    <!-- Identification -->
+    <div class="card" id="login-section">  
+      <h2>Identification Étudiant</h2>  
+      <div class="form-group">  
+        <label>Nom complet</label>  
+        <input type="text" id="name" placeholder="Votre nom complet">  
+      </div>  
+      <div class="form-group">  
+        <label>Code étudiant</label>  
+        <input type="text" id="code" placeholder="Ex: 25inf1001">  
+      </div>  
+      <button id="login-btn">Se connecter</button>  
+      <div id="login-message" class="message hidden"></div>  
+    </div>  
+
+    <!-- Section Vote -->
+    <div class="card hidden" id="voting-section">  
+      <h2 id="welcome-message">Bonjour</h2>  
+      <div class="candidates" id="candidates-list"></div>  
+      <button id="submit-vote" disabled>Soumettre mon vote</button>  
+      <div id="vote-message" class="message hidden"></div>  
+    </div>  
+
+    <!-- Confirmation -->
+    <div class="card hidden" id="confirmation-section">  
+      <h2>✅ Vote Enregistré !</h2>  
+      <p>Merci pour votre participation.</p>  
+      <p>Numéro de confirmation : <b id="confirmation-number"></b></p>  
+    </div>  
+
+    <!-- Message Déjà Voté -->
+    <div class="card hidden" id="already-voted-section">  
+      <h2>⏰ Vous avez déjà voté !</h2>  
+      <p>Un étudiant ne peut voter qu'une seule fois.</p>  
+      <p>Votre vote a été enregistré précédemment.</p>  
+      <button id="view-stats-btn">Voir les statistiques</button>  
+    </div>  
+
+    <!-- Statistiques -->
+    <div class="card hidden" id="stats-section">  
+      <h3>📊 Statistiques</h3>  
+      <div id="stats"></div>  
+    </div>  
+
+    <footer>
+      <p>© 2025 Université de Mbuji-mayi</p>
+      <p class="creator">Créé par [ir Fridolin Muipatayi Tshishimbi]</p>
+    </footer>  
+  </div>  
+
+  <script>
+    // Liste des candidats
+    const candidates = [
+      { id: 1, name: "Muipatayi Tshishimbi Fridolin", position: "Président", photo: "Fridolin" },
+      { id: 2, name: "Michael Scofield", position: "Présidente", photo: "M" },
+      { id: 3, name: "Jon Snow", position: "Président", photo: "T" },
+      { id: 4, name: "jamal Musiala", position: "Président", photo: "J" }
+    ];
+
+    // Récupérer les éléments HTML
+    const loginSection = document.getElementById('login-section');
+    const votingSection = document.getElementById('voting-section');
+    const confirmationSection = document.getElementById('confirmation-section');
+    const alreadyVotedSection = document.getElementById('already-voted-section');
+    const statsSection = document.getElementById('stats-section');
+    const loginBtn = document.getElementById('login-btn');
+    const nameInput = document.getElementById('name');
+    const codeInput = document.getElementById('code');
+    const loginMessage = document.getElementById('login-message');
+    const welcomeMessage = document.getElementById('welcome-message');
+    const candidatesList = document.getElementById('candidates-list');
+    const submitVoteBtn = document.getElementById('submit-vote');
+    const voteMessage = document.getElementById('vote-message');
+    const confirmationNumber = document.getElementById('confirmation-number');
+    const statsDiv = document.getElementById('stats');
+    const viewStatsBtn = document.getElementById('view-stats-btn');
+
+    let selectedCandidate = null;
+    let currentStudent = null;
+
+    // Vérifier si l'étudiant a déjà voté
+    function hasAlreadyVoted(code, name) {
+      const votes = JSON.parse(localStorage.getItem('votes') || '{}');
+      
+      // Vérifier si le code étudiant existe déjà
+      if (votes[code]) {
+        // Vérifier également si le nom correspond (double sécurité)
+        if (votes[code].name.toLowerCase() === name.toLowerCase()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // Afficher les candidats
+    function showCandidates() {
+      candidatesList.innerHTML = '';
+      
+      candidates.forEach(candidate => {
+        const candidateElement = document.createElement('div');
+        candidateElement.className = 'candidate';
+        candidateElement.dataset.id = candidate.id;
+        
+        candidateElement.innerHTML = `
+          <img src="${candidate.photo}" alt="${candidate.name}">
+          <h3>${candidate.name}</h3>
+          <p>${candidate.position}</p>
+        `;
+        
+        candidateElement.onclick = function() {
+          // Désélectionner tous les candidats
+          document.querySelectorAll('.candidate').forEach(el => {
+            el.classList.remove('selected');
+          });
+          
+          // Sélectionner ce candidat
+          this.classList.add('selected');
+          selectedCandidate = candidate.id;
+          submitVoteBtn.disabled = false;
+        };
+        
+        candidatesList.appendChild(candidateElement);
+      });
+    }
+
+    // Mettre à jour les statistiques
+    function updateStats(){
+      const votes = JSON.parse(localStorage.getItem('votes') || '{}');
+      const counts = {};
+      
+      // Initialiser les compteurs
+      candidates.forEach(c => counts[c.id] = 0);
+      
+      // Compter les votes
+      Object.values(votes).forEach(vote => {
+        if(counts.hasOwnProperty(vote.candidateId)) {
+          counts[vote.candidateId]++;
+        }
+      });
+      
+      // Calculer le total
+      const total = Object.values(counts).reduce((a, b) => a + b, 0);
+      
+      // Afficher les statistiques
+      statsDiv.innerHTML = '';
+      candidates.forEach(c => {
+        const nb = counts[c.id];
+        const pct = total ? ((nb/total)*100).toFixed(1) : 0;
+        statsDiv.innerHTML += `<p><b>${c.name}</b> : ${nb} votes (${pct}%)</p>`;
+      });
+    }
+
+    // Afficher les sections appropriées
+    function showSections(showLogin, showVoting, showConfirmation, showAlreadyVoted, showStats) {
+      loginSection.classList.toggle('hidden', !showLogin);
+      votingSection.classList.toggle('hidden', !showVoting);
+      confirmationSection.classList.toggle('hidden', !showConfirmation);
+      alreadyVotedSection.classList.toggle('hidden', !showAlreadyVoted);
+      statsSection.classList.toggle('hidden', !showStats);
+    }
+
+    // Bouton de connexion
+    loginBtn.onclick = function() {
+      const name = nameInput.value.trim();
+      const code = codeInput.value.trim();
+      
+      if(!name || !code){
+        loginMessage.textContent = "Veuillez remplir tous les champs.";
+        loginMessage.className = "message error";
+        loginMessage.classList.remove('hidden');
+        return;
+      }
+      
+      // Vérifier si l'étudiant a déjà voté
+      if (hasAlreadyVoted(code, name)) {
+        currentStudent = { name, code };
+        updateStats();
+        showSections(false, false, false, true, true);
+        return;
+      }
+      
+      currentStudent = { name, code };
+      showCandidates();
+      updateStats();
+      
+      welcomeMessage.textContent = `Bonjour ${currentStudent.name}, choisissez votre candidat :`;
+      showSections(false, true, false, false, true);
+    };
+
+    // Bouton pour soumettre le vote
+    submitVoteBtn.onclick = function() {
+      if(!selectedCandidate) return;
+      
+      // Vérifier une dernière fois avant d'enregistrer
+      if (hasAlreadyVoted(currentStudent.code, currentStudent.name)) {
+        voteMessage.textContent = "Erreur : Vous avez déjà voté !";
+        voteMessage.className = "message error";
+        voteMessage.classList.remove('hidden');
+        showSections(false, false, false, true, true);
+        return;
+      }
+      
+      // Enregistrer le vote
+      const votes = JSON.parse(localStorage.getItem('votes') || '{}');
+      votes[currentStudent.code] = { 
+        name: currentStudent.name, 
+        candidateId: selectedCandidate,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem('votes', JSON.stringify(votes));
+      
+      // Mettre à jour les statistiques
+      updateStats();
+      
+      // Afficher la confirmation
+      confirmationNumber.textContent = "UM-" + Math.floor(Math.random()*900000 + 100000);
+      showSections(false, false, true, false, true);
+    };
+
+    // Bouton pour voir les statistiques (section déjà voté)
+    viewStatsBtn.onclick = function() {
+      updateStats();
+      showSections(false, false, false, true, true);
+    };
+
+    // Initialiser l'application
+    function init() {
+      showSections(true, false, false, false, false);
+      updateStats();
+    }
+
+    // Démarrer l'application
+    init();
+  </script>
+</body>
+</html>
